@@ -1,6 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
+from fuzzywuzzy import process
+
+
 
 app = Flask(__name__)
 CORS(app)  # This will enable CORS for all routes
@@ -8,6 +11,12 @@ CORS(app)  # This will enable CORS for all routes
 ### Load data
 # Load golf course data from CSV into a DataFrame
 df_gc = pd.read_csv('data/usga_scrdb_aug_2024.csv')
+
+# extract lists from df
+gc_states = df_gc['State'].unique().tolist()
+courses = sorted(df_gc['Course Name'].unique().tolist())
+
+
 
 
 ### Functions
@@ -84,24 +93,20 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 
-# Flask route to fetch golf courses
+# Flask route to fetch filtered golf courses based on user input
 @app.route('/api/golf-courses', methods=['GET'])
 def get_golf_courses():
-    # Extract unique golf courses
-    df_temp = df_gc.head(1000)
-    courses = df_temp['Course Name'].unique().tolist()
-    return jsonify(courses)
+    query = request.args.get('query', '')  # Get the query from the request
+    if query:
+        # Use fuzzy matching to find courses that match the query
+        matched_courses = process.extract(query, courses, limit=10)
+        # Extract just the course names (first element of each tuple)
+        matched_courses = [course[0] for course in matched_courses]
+    else:
+        # Return all courses if no query is provided
+        matched_courses = courses[:100]
+    return jsonify(matched_courses)
 
-
-
-# # Flask route to test if data is coming through
-# @app.route('/api/preview-data', methods=['GET'])
-# def preview_data():
-#     courses = df_gc['Course Name'].unique().tolist()
-
-#     # Return a preview of the data as JSON
-#     data_preview = courses[:100]
-#     return jsonify(data_preview)
 
 
 
