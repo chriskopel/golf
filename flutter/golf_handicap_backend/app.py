@@ -11,6 +11,7 @@ CORS(app)  # This will enable CORS for all routes
 ### Load data
 # Load golf course data from CSV into a DataFrame
 df_gc = pd.read_csv('data/usga_scrdb_aug_2024.csv')
+df_gc_unique = df_gc[['Course Name','City','State']].drop_duplicates()
 
 # extract lists from df
 gc_states = df_gc['State'].unique().tolist()
@@ -102,10 +103,15 @@ def get_golf_courses():
         matched_courses = process.extract(query, courses, limit=10)
         # Extract just the course names (first element of each tuple)
         matched_courses = [course[0] for course in matched_courses]
+
+        ## Now filter the pandas df accordingly
+        df_course_result = df_gc_unique[df_gc_unique['Course Name'].isin(matched_courses)]
+        result_course_list = df_course_result.apply(lambda row: f"{row['Course Name']}, {row['City']}, {row['State']}", axis=1).tolist()
+
     else:
-        # Return all courses if no query is provided
-        matched_courses = courses[:100]
-    return jsonify(matched_courses)
+        # Return 10 courses if no query is provided
+        result_course_list = courses[3983:3993]
+    return jsonify(result_course_list)
 
 
 
