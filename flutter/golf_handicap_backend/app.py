@@ -94,7 +94,7 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 
-# Flask route to fetch filtered golf courses based on user input
+# Flask route to fetch filtered golf courses based on user input from search box
 @app.route('/api/golf-courses', methods=['GET'])
 def get_golf_courses():
     query = request.args.get('query', '')  # Get the query from the request
@@ -106,7 +106,7 @@ def get_golf_courses():
 
         ## Now filter the pandas df accordingly
         df_course_result = df_gc_unique[df_gc_unique['Course Name'].isin(matched_courses)]
-        result_course_list = df_course_result.apply(lambda row: f"{row['Course Name']}, {row['City']}, {row['State']}", axis=1).tolist()
+        result_course_list = df_course_result.apply(lambda row: f"{row['Course Name']} -- {row['City']} -- {row['State']}", axis=1).tolist()
 
     else:
         # Return 10 courses if no query is provided
@@ -115,6 +115,41 @@ def get_golf_courses():
 
 
 
+# Flask route to filter golf courses based on selected course
+@app.route('/api/filter-course', methods=['POST'])
+def filter_course():
+    # Get the string sent from Flutter
+    data = request.get_json()
+    course_str = data.get('course')  # e.g., 'Colorado Golf Club, Parker, CO'
 
+
+    # Split the string to extract the course name, city, and state
+    course_name, city, state = [item.strip() for item in course_str.split('--')]
+
+    # Filter the DataFrame based on the course name, city, and state
+    filtered_df = df_gc[
+        (df_gc['Course Name'] == course_name) &
+        (df_gc['City'] == city) &
+        (df_gc['State'] == state)
+    ].reset_index(drop=True)
+    filtered_df = filtered_df[['Tee Name','Gender']].drop_duplicates()
+
+    # Return the filtered results as a JSON response
+    if not filtered_df.empty:
+        # Convert the filtered DataFrame to a list format for the response
+        filtered_data = filtered_df.apply(lambda row: f"{row['Tee Name']} -- {row['Gender']}", axis=1).tolist()
+        return jsonify(filtered_data)
+    else:
+        return jsonify({'error': 'No matching course found'}), 404
+
+
+
+
+
+
+
+
+
+### Run app
 if __name__ == '__main__':
     app.run(debug=True)
