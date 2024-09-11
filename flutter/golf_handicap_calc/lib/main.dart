@@ -31,10 +31,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // List of golf courses for the dropdown
-  final List<String> golfCourses = ['Course A', 'Course B', 'Course C', 'Course D'];
-
-  // Selected course
+  // List of golf courses
+  List<String> golfCourses = [];
   String? selectedCourse;
 
   // List to store selected courses and corresponding scores
@@ -42,6 +40,18 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Controller for entering the score
   final TextEditingController scoreController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchGolfCourses().then((courses) {
+      setState(() {
+        golfCourses = courses;
+      });
+    }).catchError((e) {
+      print('Error fetching golf courses: $e');
+    });
+  }
 
   // Method to add a selected course and score to the list
   void addCourseAndScore() {
