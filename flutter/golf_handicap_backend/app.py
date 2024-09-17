@@ -132,12 +132,12 @@ def filter_course():
         (df_gc['City'] == city) &
         (df_gc['State'] == state)
     ].reset_index(drop=True)
-    filtered_df = filtered_df[['Tee Name','Gender']].drop_duplicates()
+    filtered_df = filtered_df[['Tee Name','Length','Gender']].drop_duplicates()
 
     # Return the filtered results as a JSON response
     if not filtered_df.empty:
         # Convert the filtered DataFrame to a list format for the response
-        filtered_data = filtered_df.apply(lambda row: f"{row['Tee Name']} -- {row['Gender']}", axis=1).tolist()
+        filtered_data = filtered_df.apply(lambda row: f"{row['Tee Name']} -- {round(row['Length'])} -- {row['Gender']}", axis=1).tolist()
         return jsonify(filtered_data)
     else:
         return jsonify({'error': 'No matching course found'}), 404
