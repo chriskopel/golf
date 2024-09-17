@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:golf_handicap_calc/api_service.dart';  // Adjust the import path if needed
+import 'package:golf_handicap_calc/api_service.dart';  // Make sure to adjust the import path
 
 void main() {
   runApp(const MyApp());
@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  final String title;  // Declare the title field here
+  final String title;
 
   const MyHomePage({super.key, required this.title});
 
@@ -31,41 +31,71 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // List of golf courses
-  List<String> golfCourses = [];
-  String? selectedCourse;
-
-  // List to store selected courses and corresponding scores
-  List<Map<String, dynamic>> selectedCourses = [];
-
-  // Controller for entering the score
+  // Controller for the search input
+  final TextEditingController searchController = TextEditingController();
   final TextEditingController scoreController = TextEditingController();
+  List<String> filteredCourses = [];
+  List<Map<String, String>> submissions = [];  // List to store submissions
+  String? selectedCourse;
+  List<String> teeNameGenderList = [];
+  String? selectedTeeGender;
 
-  @override
-  void initState() {
-    super.initState();
-    fetchGolfCourses().then((courses) {
+  // Method to fetch and update the filtered course list
+  void updateInput() {
+    String query = searchController.text;
+    fetchGolfCourses(query).then((courses) {
       setState(() {
-        golfCourses = courses;
+        filteredCourses = courses;
       });
     }).catchError((e) {
       print('Error fetching golf courses: $e');
     });
   }
 
-  // Method to add a selected course and score to the list
-  void addCourseAndScore() {
-    if (selectedCourse != null && scoreController.text.isNotEmpty) {
+  // Method to fetch Tee Name and Gender based on the selected course
+  void fetchTeeNameGenderList(String course) {
+    fetchTeeNameGender(course).then((teeList) {
       setState(() {
-        selectedCourses.add({
-          'course': selectedCourse,
-          'score': double.parse(scoreController.text),
-        });
+        teeNameGenderList = teeList;
       });
-      // Reset the selection and text field
-      selectedCourse = null;
-      scoreController.clear();
+    }).catchError((e) {
+      print('Error fetching tee name and gender: $e');
+    });
+  }
+
+  // Method to handle submission
+  void handleSubmit() {
+    if (selectedCourse != null && selectedTeeGender != null && scoreController.text.isNotEmpty) {
+      setState(() {
+        // Add new submission to the list
+        submissions.add({
+          'course': selectedCourse!,
+          'teeGender': selectedTeeGender!,
+          'score': scoreController.text
+        });
+
+        // Reset input fields
+        searchController.clear();
+        scoreController.clear();
+        selectedCourse = null;
+        selectedTeeGender = null;
+        filteredCourses = [];
+        teeNameGenderList = [];
+      });
     }
+  }
+
+  // Method to reset all fields and clear the submissions list
+  void handleReset() {
+    setState(() {
+      searchController.clear();
+      scoreController.clear();
+      filteredCourses = [];
+      selectedCourse = null;
+      selectedTeeGender = null;
+      teeNameGenderList = [];
+      submissions.clear();
+    });
   }
 
   @override
@@ -77,59 +107,122 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            const Text('Select a golf course and enter your score:'),
-            
-            // Dropdown for selecting a golf course
-            DropdownButton<String>(
-              value: selectedCourse,
-              hint: const Text('Select a course'),
-              items: golfCourses.map<DropdownMenuItem<String>>((String course) {
-                return DropdownMenuItem<String>(
-                  value: course,
-                  child: Text(course),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  selectedCourse = newValue;
-                });
-              },
-            ),
+            const SizedBox(height: 20),
 
-            // TextField for entering the score
+            const Text('Enter your search:'),
+
+            // TextField for entering the search input
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: TextField(
-                controller: scoreController,
+                controller: searchController,
                 decoration: const InputDecoration(
-                  labelText: 'Enter score',
+                  labelText: 'Search',
                   border: OutlineInputBorder(),
                 ),
-                keyboardType: TextInputType.number,
+                onSubmitted: (value) => updateInput(),
               ),
             ),
 
-            // Button to add the course and score
-            ElevatedButton(
-              onPressed: addCourseAndScore,
-              child: const Text('Add Course and Score'),
+            // Tee and Gender Dropdown and Score Input Row
+            if (teeNameGenderList.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Row(
+                  children: [
+                    // Tee Name and Gender Dropdown
+                    Expanded(
+                      child: DropdownButton<String>(
+                        value: selectedTeeGender,
+                        hint: const Text('Select Tee and Gender'),
+                        items: teeNameGenderList.map((tee) {
+                          return DropdownMenuItem<String>(
+                            value: tee,
+                            child: Text(tee),
+                          );
+                        }).toList(),
+                        onChanged: (newValue) {
+                          setState(() {
+                            selectedTeeGender = newValue;
+                          });
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // Score Input
+                    Expanded(
+                      child: TextField(
+                        controller: scoreController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Score',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // Submit Button
+                    ElevatedButton(
+                      onPressed: handleSubmit,
+                      child: const Text('Submit'),
+                    ),
+                  ],
+                ),
+              ),
+
+            const SizedBox(height: 20),
+
+            // Display the list of filtered courses
+            if (filteredCourses.isNotEmpty)
+              Expanded(
+                child: ListView.builder(
+                  itemCount: filteredCourses.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(filteredCourses[index]),
+                      onTap: () {
+                        setState(() {
+                          selectedCourse = filteredCourses[index];
+                          searchController.text = selectedCourse!;
+                          filteredCourses = [];
+                          fetchTeeNameGenderList(selectedCourse!);
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+
+            const SizedBox(height: 20),
+
+            // Display all submissions in the center of the screen
+            Expanded(
+              child: ListView.builder(
+                itemCount: submissions.length,
+                itemBuilder: (context, index) {
+                  final submission = submissions[index];
+                  return ListTile(
+                    title: Text(
+                      'Course: ${submission['course']} \nTee & Gender: ${submission['teeGender']} \nScore: ${submission['score']}',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  );
+                },
+              ),
             ),
 
             const SizedBox(height: 20),
 
-            // Display list of selected courses and scores
-            Expanded(
-              child: ListView.builder(
-                itemCount: selectedCourses.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text('${selectedCourses[index]['course']}'),
-                    subtitle: Text('Score: ${selectedCourses[index]['score']}'),
-                  );
-                },
-              ),
+            // Reset Button at the bottom center
+            ElevatedButton(
+              onPressed: handleReset,
+              child: const Text('Reset'),
             ),
           ],
         ),

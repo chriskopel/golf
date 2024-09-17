@@ -2,11 +2,27 @@ app.py = backend code
  - to run this, point to the directory of this file and then run "flask run" in the terminal
   - this starts a flask api for the front end to hit
 
- - right now i changed the df to be df.head(1000) because before this the dropdown wouldn't populate at all and the app would freeze
- - ** so returning to this we probably need the dropdown to be changed to a fuzzy search function and that narrows down the list for the user to select the course from
 
 
 
 main.dart = frontend code
  - to run this, locate in vs code and switch to this tab then hit F5.
   - NB: need the flask api to be running for this to retrieve the data
+
+
+
+
+Git:
+- created new staging branch off of main
+- created new 001_new_dropdowns off of staging
+
+- workflow:
+ - if like new updates, send to staging
+ - after a collection of updates to staging, send to main
+
+
+
+
+**Return Notes**
+ - now we're tracking the info in a list
+ - add a calculate button to calc the handicap
