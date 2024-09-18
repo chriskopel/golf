@@ -85,6 +85,13 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  // Method to remove a specific submission
+  void clearSubmission(int index) {
+    setState(() {
+      submissions.removeAt(index);
+    });
+  }
+
   // Method to reset all fields and clear the submissions list
   void handleReset() {
     setState(() {
@@ -201,7 +208,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
             const SizedBox(height: 20),
 
-            // Display all submissions in the center of the screen
+            // Display all submissions in the center of the screen with Clear button
             Expanded(
               child: ListView.builder(
                 itemCount: submissions.length,
@@ -212,8 +219,27 @@ class _MyHomePageState extends State<MyHomePage> {
                       'Course: ${submission['course']} \nTee & Gender: ${submission['teeGender']} \nScore: ${submission['score']}',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => clearSubmission(index),  // Clear individual submission
+                    ),
                   );
                 },
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Tooltip for Calculate Handicap button
+            Tooltip(
+              message: submissions.length < 3
+                  ? 'Please Enter 3 Scores at Minimum to Calculate Handicap'
+                  : '',
+              child: ElevatedButton(
+                onPressed: submissions.length >= 3 ? () {
+                  // Future functionality for calculating handicap
+                } : null,
+                child: const Text('Calculate Handicap'),
               ),
             ),
 
@@ -222,7 +248,7 @@ class _MyHomePageState extends State<MyHomePage> {
             // Reset Button at the bottom center
             ElevatedButton(
               onPressed: handleReset,
-              child: const Text('Reset'),
+              child: const Text('Clear All Scores'),
             ),
           ],
         ),

@@ -71,29 +71,6 @@ def calculate_handicap_index_from_courses(df_gc, scores, course_info):
 
 
 ### Flask
-# Flask route to calculate handicap
-@app.route('/calculate-handicap', methods=['POST'])
-def calculate_handicap():
-    data = request.json
-
-    scores = data.get('scores', [])
-    course_info = data.get('course_info', [])
-
-    if not scores or not course_info:
-        return jsonify({'error': 'Scores or course info missing'}), 400
-
-    # Calculate the handicap index using the provided scores and course info
-    handicap_index = calculate_handicap_index_from_courses(df_gc, scores, course_info)
-
-    if handicap_index is not None:
-        return jsonify({'handicap_index': handicap_index}), 200
-    else:
-        return jsonify({'error': 'Could not calculate handicap index'}), 500
-
-if __name__ == '__main__':
-    app.run(debug=True)
-
-
 # Flask route to fetch filtered golf courses based on user input from search box
 @app.route('/api/golf-courses', methods=['GET'])
 def get_golf_courses():
@@ -143,7 +120,29 @@ def filter_course():
         return jsonify({'error': 'No matching course found'}), 404
 
 
+# Flask route to accept submission and calc handicap
+@app.route('/api/calculate-handicap', methods=['POST'])
+def calculate_handicap():
+    data = request.get_json()
+    submissions = data.get('submissions', [])
 
+    # Example processing logic for calculating handicap based on submissions
+    # This is a placeholder - replace with your actual calculation logic
+    total_scores = 0
+    num_scores = len(submissions)
+
+    if num_scores > 0:
+        for submission in submissions:
+            score = int(submission['score'])
+            total_scores += score
+
+        # Simple average as placeholder for handicap calculation
+        average_score = total_scores / num_scores
+        handicap = average_score  # Placeholder logic for handicap
+
+        return jsonify({'handicap': handicap})
+    else:
+        return jsonify({'error': 'No submissions found'}), 400
 
 
 
