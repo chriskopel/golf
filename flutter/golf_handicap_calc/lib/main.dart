@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:golf_handicap_calc/api_service.dart';  // Make sure to adjust the import path
+import 'package:golf_handicap_calc/api_service.dart'; // Make sure to adjust the import path
 
 void main() {
   runApp(const MyApp());
@@ -35,10 +35,11 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController searchController = TextEditingController();
   final TextEditingController scoreController = TextEditingController();
   List<String> filteredCourses = [];
-  List<Map<String, String>> submissions = [];  // List to store submissions
+  List<Map<String, String>> submissions = []; // List to store submissions
   String? selectedCourse;
   List<String> teeNameGenderList = [];
   String? selectedTeeGender;
+  double _handicapIndex = 0.0; // State variable to store the calculated handicap index
 
   // Method to fetch and update the filtered course list
   void updateInput() {
@@ -85,6 +86,20 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  // Method to send data to the backend when "Calculate Handicap" is pressed
+  void handleCalculateHandicap() {
+    sendSubmissionsDataFront(submissions, _updateHandicapIndex).then((_) {
+      print('Submissions Data: $submissions'); // Print the submissions data to the console
+    });
+  }
+
+  // Method to update the state with the calculated handicap index
+  void _updateHandicapIndex(double handicapIndex) {
+    setState(() {
+      _handicapIndex = handicapIndex;
+    });
+  }
+
   // Method to remove a specific submission
   void clearSubmission(int index) {
     setState(() {
@@ -102,6 +117,7 @@ class _MyHomePageState extends State<MyHomePage> {
       selectedTeeGender = null;
       teeNameGenderList = [];
       submissions.clear();
+      _handicapIndex = 0.0; // Reset the handicap index as well
     });
   }
 
@@ -116,6 +132,17 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
+            const SizedBox(height: 20),
+
+            // Display the calculated handicap index at the top center of the screen
+            Text(
+              'Handicap Index: ${_handicapIndex.toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
             const SizedBox(height: 20),
 
             const Text('Enter your search:'),
@@ -221,7 +248,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.clear),
-                      onPressed: () => clearSubmission(index),  // Clear individual submission
+                      onPressed: () => clearSubmission(index), // Clear individual submission
                     ),
                   );
                 },
@@ -236,9 +263,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ? 'Please Enter 3 Scores at Minimum to Calculate Handicap'
                   : '',
               child: ElevatedButton(
-                onPressed: submissions.length >= 3 ? () {
-                  // Future functionality for calculating handicap
-                } : null,
+                onPressed: submissions.length >= 3 ? handleCalculateHandicap : null,
                 child: const Text('Calculate Handicap'),
               ),
             ),

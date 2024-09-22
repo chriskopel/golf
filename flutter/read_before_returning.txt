@@ -24,5 +24,6 @@ Git:
 
 
 **Return Notes**
- - now we're tracking the info in a list
- - add a calculate button to calc the handicap
+ - it works!
+ - now work on final touches like look and feel 
+ - then start porting to ios/android?

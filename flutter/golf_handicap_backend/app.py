@@ -19,57 +19,6 @@ courses = sorted(df_gc['Course Name'].unique().tolist())
 
 
 
-
-### Functions
-def calculate_handicap_index_from_courses(df_gc, scores, course_info):
-    """
-    Calculate the USGA Handicap Index for a player based on course information.
-
-    Parameters:
-    df_gc (pd.DataFrame): DataFrame containing course information.
-    scores (list of float): List of adjusted gross scores for each round.
-    course_info (list of tuple): List of tuples containing course name, city, state, tee name, and gender.
-
-    Returns:
-    float: The player's Handicap Index.
-    """
-    score_differentials = []
-
-    for i, (course_name, city, state, tee_name, gender) in enumerate(course_info):
-        # Look up course rating and slope rating from the DataFrame
-        course_data = df_gc[(df_gc['Course Name'] == course_name) &
-                            (df_gc['City'] == city) &
-                            (df_gc['State'] == state) &
-                            (df_gc['Tee Name'] == tee_name) &
-                            (df_gc['Gender'] == gender) &
-                            (df_gc['Back (9)'] != '/')]
-
-        if not course_data.empty:
-            course_rating = course_data.iloc[0]['Course Rating™']
-            slope_rating = course_data.iloc[0]['Slope Rating®']
-
-            # Calculate score differential
-            differential = (113 / slope_rating) * (scores[i] - course_rating)
-            score_differentials.append(differential)
-        else:
-            print(f"Course information not found for: {course_name}, {city}, {state}, {tee_name}")
-
-    # Sort the score differentials and select the lowest 8 if there are at least 20 rounds
-    score_differentials.sort()
-    num_differentials = min(8, len(score_differentials))
-    best_differentials = score_differentials[:num_differentials]
-
-    # Calculate the average of the selected differentials and apply the 0.96 multiplier
-    if best_differentials:
-        average_differential = sum(best_differentials) / num_differentials
-        handicap_index = average_differential * 0.96
-    else:
-        handicap_index = None
-
-    return handicap_index
-
-
-
 ### Flask
 # Flask route to fetch filtered golf courses based on user input from search box
 @app.route('/api/golf-courses', methods=['GET'])
@@ -120,31 +69,83 @@ def filter_course():
         return jsonify({'error': 'No matching course found'}), 404
 
 
+
 # Flask route to accept submission and calc handicap
 @app.route('/api/calculate-handicap', methods=['POST'])
 def calculate_handicap():
-    data = request.get_json()
-    submissions = data.get('submissions', [])
+    """
+    Calculate the USGA Handicap Index for a player based on course information.
 
-    # Example processing logic for calculating handicap based on submissions
-    # This is a placeholder - replace with your actual calculation logic
-    total_scores = 0
-    num_scores = len(submissions)
+    Returns:
+    float: The player's Handicap Index.
+    """
+    score_differentials = []
 
-    if num_scores > 0:
-        for submission in submissions:
-            score = int(submission['score'])
-            total_scores += score
+    try:
+        # Parse JSON data from the request
+        data = request.get_json()
+        submissions = data.get('submissions', [])
 
-        # Simple average as placeholder for handicap calculation
-        average_score = total_scores / num_scores
-        handicap = average_score  # Placeholder logic for handicap
+        print('Received Submissions:')
+        for idx, submission in enumerate(submissions, start=1):
+            # Split and assign each component from the course string
+            course_parts = submission['course'].split(' -- ')
+            tee_gender_parts = submission['teeGender'].split(' -- ')
 
-        return jsonify({'handicap': handicap})
-    else:
-        return jsonify({'error': 'No submissions found'}), 400
+            # Parse the values
+            golf_course = course_parts[0].strip()
+            city = course_parts[1].strip()
+            state = course_parts[2].strip()
+            tee = tee_gender_parts[0].strip()
+            # yardage = tee_gender_parts[1].strip() # this is used to help the user in the selection on the front end, don't need it here
+            gender = tee_gender_parts[2].strip()
+            score = float(submission['score'].strip())
 
 
+            # Look up course rating and slope rating from the DataFrame
+            course_data = df_gc[(df_gc['Course Name'] == golf_course) &
+                                (df_gc['City'] == city) &
+                                (df_gc['State'] == state) &
+                                (df_gc['Tee Name'] == tee) &
+                                (df_gc['Gender'] == gender) &
+                                (df_gc['Back (9)'] != '/')]
+
+            if not course_data.empty:
+                course_rating = course_data.iloc[0]['Course Rating™']
+                slope_rating = course_data.iloc[0]['Slope Rating®']
+
+                # Calculate score differential
+                differential = (113 / slope_rating) * (score - course_rating)
+                score_differentials.append(differential)
+            else:
+                print(f"Course information not found for: {golf_course}, {city}, {state}, {tee}")
+
+
+        # Sort the score differentials and select the lowest 8 if there are at least 20 rounds
+        # differentials = score_differentials # in case we want to show the user the raw differentials
+        score_differentials.sort()
+        num_differentials = min(8, len(score_differentials))
+        best_differentials = score_differentials[:num_differentials]
+
+        # Calculate the average of the selected differentials and apply the 0.96 multiplier
+        if best_differentials:
+            average_differential = sum(best_differentials) / num_differentials
+            handicap_index = round(average_differential * 0.96,2)
+        else:
+            handicap_index = None
+
+        print(handicap_index)
+
+        # Return a success response with parsed data
+        return jsonify({
+            'status': 'success',
+            'message': 'Data parsed successfully',
+            'parsed_data': handicap_index
+        }), 200
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 
